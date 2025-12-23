@@ -16,6 +16,7 @@
     "spatial",
     "GIS"
   ],
+  "repository": {"url": "https://github.com/garyritchie/n8n-nodes-geohash"},
   "dependencies": {
     "latlon-geohash": "^2.0.0",
     "n8n-core": "*",
