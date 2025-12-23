@@ -4,7 +4,7 @@ This is an n8n community node. It lets you encode and decode [Geohashes](https:/
 
 ## Operations
 
-![Geohash](../n8n-nodes-geohash/images/Screenshot_from_2025-12-23_14-13-25.webp)
+![Geohash in action](images/Screenshot_from_2025-12-23_14-13-25.webp)
 
 This node supports the following operations:
 
@@ -60,7 +60,9 @@ GPL & MIT (latlon-geohash)
 ## Publishing
 
 ```bash
-npm version patch|minor|major
+git tag 1.0.2
+
+npm version from-git
 
 git push --follow-tags
 ```
