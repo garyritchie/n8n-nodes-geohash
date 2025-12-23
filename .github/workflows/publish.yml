@@ -3,8 +3,11 @@ name: Publish to NPM
 on:
   push:
     tags:
-      - '[0-9]+.[0-9]+.[0-9]+'
-      - '[0-9]+.[0-9]+.[0-9]+-*' # Matches pre-releases like 1.0.0-beta
+      # Use glob patterns (not regex). 
+      # Matches tags like 1.0.1, 20.10.5, etc.
+      - '[0-9]*.[0-9]*.[0-9]*' 
+      # Matches pre-releases like 1.0.0-beta
+      - '[0-9]*.[0-9]*.[0-9]*-*'
 
 jobs:
   build-and-publish:
