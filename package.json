@@ -1,0 +1,22 @@
+{
+  "name": "n8n-nodes-geohash",
+  "version": "1.0.0",
+  "main": "dist/Geohash/Geohash.node.js",
+  "n8n": {
+    "nodes": [
+      "dist/Geohash/Geohash.node.js"
+    ]
+  },
+  "dependencies": {
+    "latlon-geohash": "^2.0.0",
+    "n8n-core": "*",
+    "n8n-workflow": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^14.0.0"
+  },
+  "scripts": {
+    "build": "tsc"
+  }
+}

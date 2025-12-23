@@ -1,0 +1,21 @@
+{
+    "compilerOptions": {
+      "target": "es2019",
+      "module": "commonjs",
+      "lib": ["es2019", "es2020", "dom"],
+      "rootDir": "nodes",
+      "outDir": "dist",
+      "esModuleInterop": true,
+      "skipLibCheck": true,
+      "forceConsistentCasingInFileNames": true,
+      "noImplicitAny": false,
+      "strictPropertyInitialization": false,
+      "strict": false
+    },
+    "include": [
+      "nodes/**/*"
+    ],
+    "exclude": [
+      "node_modules"
+    ]
+  }

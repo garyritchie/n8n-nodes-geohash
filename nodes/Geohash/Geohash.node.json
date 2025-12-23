@@ -1,0 +1,9 @@
+{
+  "node": "n8n-nodes-geohash.geohash",
+  "nodeVersion": "1.0",
+  "codexVersion": "1.0",
+  "categories": ["Transform"],
+  "resources": {
+    "primaryDocumentationUrl": "https://www.npmjs.com/package/latlon-geohash"
+  }
+}
