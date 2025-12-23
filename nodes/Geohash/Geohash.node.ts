@@ -14,7 +14,7 @@ export class Geohash implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Geohash',
 		name: 'geohash',
-		icon: 'fa:map-marker-alt',
+		icon: 'file:Geohash.svg',
 		group: ['transform'],
 		version: 1,
 		description: 'Encode and decode Geohashes using latlon-geohash',
@@ -33,22 +33,27 @@ export class Geohash implements INodeType {
 					{
 						name: 'Encode (Lat/Lon to Hash)',
 						value: 'encode',
+						action: 'Encode latitude and longitude to geohash',
 					},
 					{
 						name: 'Decode (Hash to Lat/Lon)',
 						value: 'decode',
+						action: 'Decode center of geohash to latitude and longitude',
 					},
 					{
 						name: 'Get Bounds',
 						value: 'bounds',
+						action: 'Return bounds of given geohash',
 					},
 					{
 						name: 'Get Adjacent',
 						value: 'adjacent',
+						action: 'Return adjacent cell to given geohash in specified direction (N/S/E/W)',
 					},
 					{
 						name: 'Get Neighbours',
 						value: 'neighbours',
+						action: 'Return all 8 adjacent cells to given geohash'
 					},
 				],
 				default: 'encode',

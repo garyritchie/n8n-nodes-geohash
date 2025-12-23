@@ -4,6 +4,8 @@ This is an n8n community node. It lets you encode and decode [Geohashes](https:/
 
 ## Operations
 
+![Geohash](../n8n-nodes-geohash/images/Screenshot_from_2025-12-23_14-13-25.webp)
+
 This node supports the following operations:
 
 * **Encode:** Convert a Latitude and Longitude into a Geohash string.
