@@ -7,6 +7,15 @@
       "dist/Geohash/Geohash.node.js"
     ]
   },
+  "files": [
+  "dist"
+  ],
+  "license": "GPL",
+  "keywords": [
+    "n8n-community-node-package",
+    "spatial",
+    "GIS"
+  ],
   "dependencies": {
     "latlon-geohash": "^2.0.0",
     "n8n-core": "*",
