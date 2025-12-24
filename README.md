@@ -4,7 +4,7 @@ This is an n8n community node. It lets you encode and decode [Geohashes](https:/
 
 ## Operations
 
-![Geohash in action](images/Screenshot_from_2025-12-23_14-13-25.webp)
+![Geohash in action](images/example.webp)
 
 This node supports the following operations:
 
