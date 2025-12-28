@@ -1,8 +1,15 @@
 {
   "name": "n8n-nodes-geohash",
   "version": "1.0.3",
+  "description": "Encode and decode Geohashes directly in your workflows.",
+  "author": {
+		"name": "Gary Ritchie",
+		"email": "gary@lyonritchie.com"
+	},
   "main": "dist/Geohash/Geohash.node.js",
   "n8n": {
+    "n8nNodesApiVersion": 1,
+		"strict": true,
     "nodes": [
       "dist/Geohash/Geohash.node.js"
     ]
@@ -10,7 +17,7 @@
   "files": [
     "dist"
   ],
-  "license": "GPL",
+  "license": "MIT",
   "keywords": [
     "n8n-community-node-package",
     "spatial",
@@ -20,7 +27,6 @@
     "url": "https://github.com/garyritchie/n8n-nodes-geohash"
   },
   "dependencies": {
-    "latlon-geohash": "^2.0.0",
     "n8n-core": "*",
     "n8n-workflow": "*"
   },
@@ -28,11 +34,15 @@
     "@n8n/node-cli": "^0.17.0",
     "@types/node": "^14.0.0",
     "copyfiles": "^2.4.1",
+    "eslint": "9.32.0",
+    "prettier": "3.6.2",
     "typescript": "^5.0.0"
   },
   "scripts": {
     "build": "tsc && copyfiles -u 1 nodes/**/*.svg dist",
     "build:watch": "tsc --watch && copyfiles -u 1 nodes/**/*.svg dist",
-    "dev": "n8n-node dev"
+    "dev": "n8n-node dev",
+    "lint": "n8n-node lint",
+		"lint:fix": "n8n-node lint --fix"
   }
 }

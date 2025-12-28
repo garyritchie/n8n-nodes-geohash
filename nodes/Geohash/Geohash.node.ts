@@ -6,12 +6,11 @@ import {
 	INodeTypeDescription,
 } from 'n8n-workflow';
 
-// FIX: Renamed import to avoid conflict with the class name below
-// @ts-ignore
-import GeohashLibrary from 'latlon-geohash';
+import { GeohashUtils as Geohash } from './GeohashUtils';
 
 export class Geohash implements INodeType {
 	description: INodeTypeDescription = {
+		usableAsTool: true,
 		displayName: 'Geohash',
 		name: 'geohash',
 		icon: 'file:Geohash.svg',
@@ -31,24 +30,24 @@ export class Geohash implements INodeType {
 				noDataExpression: true,
 				options: [
 					{
-						name: 'Encode (Lat/Lon to Hash)',
-						value: 'encode',
-						action: 'Encode latitude and longitude to geohash',
-					},
-					{
 						name: 'Decode (Hash to Lat/Lon)',
 						value: 'decode',
 						action: 'Decode center of geohash to latitude and longitude',
 					},
 					{
-						name: 'Get Bounds',
-						value: 'bounds',
-						action: 'Return bounds of given geohash',
+						name: 'Encode (Lat/Lon to Hash)',
+						value: 'encode',
+						action: 'Encode latitude and longitude to geohash',
 					},
 					{
 						name: 'Get Adjacent',
 						value: 'adjacent',
 						action: 'Return adjacent cell to given geohash in specified direction (N/S/E/W)',
+					},
+					{
+						name: 'Get Bounds',
+						value: 'bounds',
+						action: 'Return bounds of given geohash',
 					},
 					{
 						name: 'Get Neighbours',
@@ -130,7 +129,7 @@ export class Geohash implements INodeType {
 
 		for (let i = 0; i < items.length; i++) {
 			try {
-				let result: any;
+				let result: IDataObject;
 
 				if (operation === 'encode') {
 					const lat = this.getNodeParameter('latitude', i) as number;
