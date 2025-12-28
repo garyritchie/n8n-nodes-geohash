@@ -140,12 +140,10 @@ export class GeohashUtils {
 		let parent = geohash.slice(0, -1);
 		const type = geohash.length % 2;
 
-		// @ts-expect-error: Implicit string index lookup for direction map
 		if (border[direction][type].indexOf(lastCh) !== -1 && parent !== '') {
 			parent = this.adjacent(parent, direction);
 		}
 
-		// @ts-expect-error: Implicit string index lookup for direction map
 		return parent + BASE32.charAt(neighbour[direction][type].indexOf(lastCh));
 	}
 	

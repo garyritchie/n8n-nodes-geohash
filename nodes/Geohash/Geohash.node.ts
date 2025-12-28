@@ -6,7 +6,7 @@ import {
 	INodeTypeDescription,
 } from 'n8n-workflow';
 
-import { GeohashUtils as Geohash } from './GeohashUtils';
+import { GeohashUtils } from './GeohashUtils';
 
 export class Geohash implements INodeType {
 	description: INodeTypeDescription = {
@@ -138,28 +138,28 @@ export class Geohash implements INodeType {
 					
 					// FIX: Using the renamed library import
 					result = {
-						geohash: GeohashLibrary.encode(lat, lon, precision),
+						geohash: GeohashUtils.encode(lat, lon, precision),
 					};
 
 				} else if (operation === 'decode') {
 					const hash = this.getNodeParameter('geohash', i) as string;
-					result = GeohashLibrary.decode(hash);
+					result = GeohashUtils.decode(hash);
 
 				} else if (operation === 'bounds') {
 					const hash = this.getNodeParameter('geohash', i) as string;
-					result = GeohashLibrary.bounds(hash);
+					result = GeohashUtils.bounds(hash);
 
 				} else if (operation === 'adjacent') {
 					const hash = this.getNodeParameter('geohash', i) as string;
 					const direction = this.getNodeParameter('direction', i) as string;
 					
 					result = {
-						geohash: GeohashLibrary.adjacent(hash, direction),
+						geohash: GeohashUtils.adjacent(hash, direction),
 					};
 
 				} else if (operation === 'neighbours') {
 					const hash = this.getNodeParameter('geohash', i) as string;
-					result = GeohashLibrary.neighbours(hash);
+					result = GeohashUtils.neighbours(hash);
 				}
 
 				returnData.push({

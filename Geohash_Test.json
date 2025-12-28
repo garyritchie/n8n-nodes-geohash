@@ -1,0 +1,81 @@
+{
+  "name": "Geohash Test",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "f68316da-3428-4035-b771-5380f0a498b8",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "latitude": 40.689247,
+        "longitude": -74.044502,
+        "precision": 9
+      },
+      "id": "f4450007-4e54-4d29-aa92-9ae1bce08fc9",
+      "name": "Encode Statue of Liberty",
+      "type": "n8n-nodes-geohash.geohash",
+      "typeVersion": 1,
+      "position": [
+        256,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "decode",
+        "geohash": "={{ $json.geohash }}"
+      },
+      "id": "acaa4812-0857-4121-ac92-2542f613615e",
+      "name": "Verify Decode",
+      "type": "n8n-nodes-geohash.geohash",
+      "typeVersion": 1,
+      "position": [
+        480,
+        0
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Encode Statue of Liberty",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Encode Statue of Liberty": {
+      "main": [
+        [
+          {
+            "node": "Verify Decode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "e04d25d1-c4e1-41e5-954f-107f63317619",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c0a41023b0b733e09a9e6006654dd58c0d2741e7f7290a975c091c98da229c2c"
+  },
+  "id": "rEnuCGEwQ5yZ3ZEq",
+  "tags": []
+}
