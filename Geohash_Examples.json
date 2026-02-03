@@ -1,0 +1,169 @@
+{
+  "name": "Geohash Examples",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "cb814948-9c49-44b0-95eb-5dbee093f481",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {},
+      "id": "4b282745-cc24-41fd-a923-1f7cf40d1d9a",
+      "name": "Encode Statue of Liberty",
+      "type": "n8n-nodes-geohash.geohash",
+      "typeVersion": 1,
+      "position": [
+        256,
+        0
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "8152ddba-5cfc-446c-a58c-1fcbf279ba3f",
+      "name": "Verify Decode",
+      "type": "n8n-nodes-geohash.geohash",
+      "typeVersion": 1,
+      "position": [
+        480,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "latitude": 48.8584,
+        "longitude": 2.2945,
+        "precision": 7
+      },
+      "type": "n8n-nodes-geohash.geohash",
+      "typeVersion": 1,
+      "position": [
+        256,
+        272
+      ],
+      "id": "66fa56b2-4366-406f-a05a-0375daed75e5",
+      "name": "Encode Eiffel Tower"
+    },
+    {
+      "parameters": {
+        "operation": "adjacent",
+        "geohash": "={{ $json.geohash }}",
+        "direction": "e"
+      },
+      "type": "n8n-nodes-geohash.geohash",
+      "typeVersion": 1,
+      "position": [
+        480,
+        192
+      ],
+      "id": "656fd5b8-0fcf-4e49-b511-66289651917c",
+      "name": "Adjacent geohash"
+    },
+    {
+      "parameters": {
+        "operation": "neighbours",
+        "geohash": "={{ $json.geohash }}"
+      },
+      "type": "n8n-nodes-geohash.geohash",
+      "typeVersion": 1,
+      "position": [
+        480,
+        368
+      ],
+      "id": "0b88dd46-b344-4c54-a230-5459a34d0218",
+      "name": "Neighbor geohash"
+    },
+    {
+      "parameters": {
+        "operation": "bounds",
+        "geohash": "={{ $json.geohash }}"
+      },
+      "type": "n8n-nodes-geohash.geohash",
+      "typeVersion": 1,
+      "position": [
+        480,
+        544
+      ],
+      "id": "f4dbfb28-fc95-42a5-8fb1-40fba29ee746",
+      "name": "Lat/Lon bounds of geohash"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Encode Statue of Liberty",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Encode Eiffel Tower",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Encode Statue of Liberty": {
+      "main": [
+        [
+          {
+            "node": "Verify Decode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Encode Eiffel Tower": {
+      "main": [
+        [
+          {
+            "node": "Adjacent geohash",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Neighbor geohash",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Lat/Lon bounds of geohash",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Adjacent geohash": {
+      "main": [
+        []
+      ]
+    },
+    "Neighbor geohash": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "2ef2e1c5-0e12-4afe-a51b-67af4920a8c1",
+  "meta": {
+    "instanceId": "56e2d51933c53aa2c22308621cd29584596feb28e785b02680e910d9777ed90b"
+  },
+  "id": "LAFek7HK9n0-4gBVufFFS",
+  "tags": []
+}

@@ -25,7 +25,7 @@ Follow the [installation guide](https://docs.n8n.io/integrations/community-nodes
 
 ## Compatibility
 
-* Tested on n8n version 1.0+
+* Tested on n8n version 2.0+
 * No external credentials or services required.
 
 ## Usage
@@ -34,7 +34,7 @@ Follow the [installation guide](https://docs.n8n.io/integrations/community-nodes
 
 To convert a coordinate (e.g., the Eiffel Tower) to a hash:
 
-1. Select **Encode**.
+1. Select **Encode**
 2. **Latitude**: `48.8584`
 3. **Longitude**: `2.2945`
 4. **Precision**: `9`
