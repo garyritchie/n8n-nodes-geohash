@@ -4,6 +4,7 @@ import {
 	INodeExecutionData,
 	INodeType,
 	INodeTypeDescription,
+	NodeOperationError,
 } from 'n8n-workflow';
 
 import { GeohashUtils } from './GeohashUtils';
@@ -135,7 +136,7 @@ export class Geohash implements INodeType {
 					const lat = this.getNodeParameter('latitude', i) as number;
 					const lon = this.getNodeParameter('longitude', i) as number;
 					const precision = this.getNodeParameter('precision', i) as number;
-					
+
 					// FIX: Using the renamed library import
 					result = {
 						geohash: GeohashUtils.encode(lat, lon, precision),
@@ -152,7 +153,7 @@ export class Geohash implements INodeType {
 				} else if (operation === 'adjacent') {
 					const hash = this.getNodeParameter('geohash', i) as string;
 					const direction = this.getNodeParameter('direction', i) as string;
-					
+
 					result = {
 						geohash: GeohashUtils.adjacent(hash, direction),
 					};
@@ -164,6 +165,9 @@ export class Geohash implements INodeType {
 
 				returnData.push({
 					json: result,
+					pairedItem: {
+						item: i,
+					},
 				});
 
 			} catch (error) {
@@ -172,10 +176,15 @@ export class Geohash implements INodeType {
 						json: {
 							error: (error as Error).message,
 						},
+						pairedItem: {
+							item: i,
+						},
 					});
 					continue;
 				}
-				throw error;
+				throw new NodeOperationError(this.getNode(), error as Error, {
+					itemIndex: i,
+				});
 			}
 		}
 
