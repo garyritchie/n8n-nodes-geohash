@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-geohash",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Encode and decode Geohashes directly in your workflows.",
   "author": {
     "name": "Gary Ritchie",
@@ -35,8 +35,8 @@
     "typescript": "^5.0.0"
   },
   "peerDependencies": {
-		"n8n-workflow": "*"
-	},
+    "n8n-workflow": "*"
+  },
   "scripts": {
     "build": "tsc && copyfiles -u 1 nodes/**/*.svg dist",
     "build:watch": "tsc --watch && copyfiles -u 1 nodes/**/*.svg dist",
