@@ -1,0 +1,393 @@
+{
+  "name": "Geohash Code Nodes (Cloud Alternative)",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "latitude",
+              "value": 51.5074,
+              "type": "number"
+            },
+            {
+              "id": "2",
+              "name": "longitude",
+              "value": -0.1278,
+              "type": "number"
+            },
+            {
+              "id": "3",
+              "name": "precision",
+              "value": 10,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f5ef929f-3915-469a-8528-8c98c5a5c6c4",
+      "name": "Set Encode Inputs",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst BASE32 = '0123456789bcdefghjkmnpqrstuvwxyz';\n\nfunction encode(lat, lon, precision = 10) {\n    let idx = 0;\n    let bit = 0;\n    let evenBit = true;\n    let geohash = '';\n\n    let latMin = -90, latMax = 90;\n    let lonMin = -180, lonMax = 180;\n\n    while (geohash.length < precision) {\n        if (evenBit) {\n            const lonMid = (lonMin + lonMax) / 2;\n            if (lon >= lonMid) {\n                idx = idx * 2 + 1;\n                lonMin = lonMid;\n            } else {\n                idx = idx * 2;\n                lonMax = lonMid;\n            }\n        } else {\n            const latMid = (latMin + latMax) / 2;\n            if (lat >= latMid) {\n                idx = idx * 2 + 1;\n                latMin = latMid;\n            } else {\n                idx = idx * 2;\n                latMax = latMid;\n            }\n        }\n        evenBit = !evenBit;\n\n        if (++bit === 5) {\n            geohash += BASE32.charAt(idx);\n            bit = 0;\n            idx = 0;\n        }\n    }\n    return geohash;\n}\n\nfunction bounds(geohash) {\n    let evenBit = true;\n    let latMin = -90, latMax = 90;\n    let lonMin = -180, lonMax = 180;\n\n    for (let i = 0; i < geohash.length; i++) {\n        const chr = geohash.charAt(i);\n        const idx = BASE32.indexOf(chr);\n        if (idx === -1) throw new Error('Invalid geohash');\n\n        for (let n = 4; n >= 0; n--) {\n            const bitN = (idx >> n) & 1;\n            if (evenBit) {\n                const lonMid = (lonMin + lonMax) / 2;\n                if (bitN === 1) {\n                    lonMin = lonMid;\n                } else {\n                    lonMax = lonMid;\n                }\n            } else {\n                const latMid = (latMin + latMax) / 2;\n                if (bitN === 1) {\n                    latMin = latMid;\n                } else {\n                    latMax = latMid;\n                }\n            }\n            evenBit = !evenBit;\n        }\n    }\n\n    return {\n        sw: { lat: latMin, lon: lonMin },\n        ne: { lat: latMax, lon: lonMax },\n    };\n}\n\nfunction decode(geohash) {\n    const b = bounds(geohash);\n    const latMin = b.sw.lat, latMax = b.ne.lat;\n    const lonMin = b.sw.lon, lonMax = b.ne.lon;\n\n    return {\n        lat: Number(((latMin + latMax) / 2).toFixed(Math.floor(2 - Math.log(latMax - latMin) / Math.LN10))),\n        lon: Number(((lonMin + lonMax) / 2).toFixed(Math.floor(2 - Math.log(lonMax - lonMin) / Math.LN10))),\n    };\n}\n\nfunction adjacent(geohash, direction) {\n    geohash = geohash.toLowerCase();\n    direction = direction.toLowerCase();\n\n    if (geohash.length === 0) throw new Error('Invalid geohash');\n    if ('nsew'.indexOf(direction) === -1) throw new Error('Invalid direction');\n\n    const neighbour = {\n        n: [ 'p0r21436x8zb9dcf5h7kjnmqesgutwvy', 'bc01fg45238967deuvhjyznpkmstqrwx' ],\n        s: [ '14365h7k9dcfesgujnmqp0r2twvyx8zb', '238967debc01fg45kmstqrwxuvhjyznp' ],\n        e: [ 'bc01fg45238967deuvhjyznpkmstqrwx', 'p0r21436x8zb9dcf5h7kjnmqesgutwvy' ],\n        w: [ '238967debc01fg45kmstqrwxuvhjyznp', '14365h7k9dcfesgujnmqp0r2twvyx8zb' ],\n    };\n\n    const border = {\n        n: [ 'prxz',     'bcfguvyz' ],\n        s: [ '028b',     '0145hjnp' ],\n        e: [ 'bcfguvyz', 'prxz'     ],\n        w: [ '0145hjnp', '028b'     ],\n    };\n\n    const lastCh = geohash.slice(-1);\n    let parent = geohash.slice(0, -1);\n    const type = geohash.length % 2;\n\n    if (border[direction][type].indexOf(lastCh) !== -1 && parent !== '') {\n        parent = adjacent(parent, direction);\n    }\n\n    return parent + BASE32.charAt(neighbour[direction][type].indexOf(lastCh));\n}\n\nfunction neighbours(geohash) {\n    return {\n        n: adjacent(geohash, 'n'),\n        ne: adjacent(adjacent(geohash, 'n'), 'e'),\n        e: adjacent(geohash, 'e'),\n        se: adjacent(adjacent(geohash, 's'), 'e'),\n        s: adjacent(geohash, 's'),\n        sw: adjacent(adjacent(geohash, 's'), 'w'),\n        w: adjacent(geohash, 'w'),\n        nw: adjacent(adjacent(geohash, 'n'), 'w'),\n    };\n}\n\n\nreturn $input.all().map((item, i) => {\n    try {\n\n        const lat = item.json.latitude;\n        const lon = item.json.longitude;\n        const precision = item.json.precision || 10;\n        if (lat === undefined || lon === undefined) {\n            throw new Error(\"Missing latitude or longitude in input.\");\n        }\n        return { json: { geohash: encode(lat, lon, precision) }, pairedItem: { item: i } };\n    } catch (error) {\n        return { json: { error: error.message }, pairedItem: { item: i } };\n    }\n});"
+      },
+      "id": "5894894d-2a6d-4ae1-877e-a5b704ea195f",
+      "name": "Geohash Encode",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "geohash",
+              "value": "gcpvj0d7",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "cf04ac02-c421-48ed-bc6d-66f6415a18dd",
+      "name": "Set Decode Inputs",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst BASE32 = '0123456789bcdefghjkmnpqrstuvwxyz';\n\nfunction encode(lat, lon, precision = 10) {\n    let idx = 0;\n    let bit = 0;\n    let evenBit = true;\n    let geohash = '';\n\n    let latMin = -90, latMax = 90;\n    let lonMin = -180, lonMax = 180;\n\n    while (geohash.length < precision) {\n        if (evenBit) {\n            const lonMid = (lonMin + lonMax) / 2;\n            if (lon >= lonMid) {\n                idx = idx * 2 + 1;\n                lonMin = lonMid;\n            } else {\n                idx = idx * 2;\n                lonMax = lonMid;\n            }\n        } else {\n            const latMid = (latMin + latMax) / 2;\n            if (lat >= latMid) {\n                idx = idx * 2 + 1;\n                latMin = latMid;\n            } else {\n                idx = idx * 2;\n                latMax = latMid;\n            }\n        }\n        evenBit = !evenBit;\n\n        if (++bit === 5) {\n            geohash += BASE32.charAt(idx);\n            bit = 0;\n            idx = 0;\n        }\n    }\n    return geohash;\n}\n\nfunction bounds(geohash) {\n    let evenBit = true;\n    let latMin = -90, latMax = 90;\n    let lonMin = -180, lonMax = 180;\n\n    for (let i = 0; i < geohash.length; i++) {\n        const chr = geohash.charAt(i);\n        const idx = BASE32.indexOf(chr);\n        if (idx === -1) throw new Error('Invalid geohash');\n\n        for (let n = 4; n >= 0; n--) {\n            const bitN = (idx >> n) & 1;\n            if (evenBit) {\n                const lonMid = (lonMin + lonMax) / 2;\n                if (bitN === 1) {\n                    lonMin = lonMid;\n                } else {\n                    lonMax = lonMid;\n                }\n            } else {\n                const latMid = (latMin + latMax) / 2;\n                if (bitN === 1) {\n                    latMin = latMid;\n                } else {\n                    latMax = latMid;\n                }\n            }\n            evenBit = !evenBit;\n        }\n    }\n\n    return {\n        sw: { lat: latMin, lon: lonMin },\n        ne: { lat: latMax, lon: lonMax },\n    };\n}\n\nfunction decode(geohash) {\n    const b = bounds(geohash);\n    const latMin = b.sw.lat, latMax = b.ne.lat;\n    const lonMin = b.sw.lon, lonMax = b.ne.lon;\n\n    return {\n        lat: Number(((latMin + latMax) / 2).toFixed(Math.floor(2 - Math.log(latMax - latMin) / Math.LN10))),\n        lon: Number(((lonMin + lonMax) / 2).toFixed(Math.floor(2 - Math.log(lonMax - lonMin) / Math.LN10))),\n    };\n}\n\nfunction adjacent(geohash, direction) {\n    geohash = geohash.toLowerCase();\n    direction = direction.toLowerCase();\n\n    if (geohash.length === 0) throw new Error('Invalid geohash');\n    if ('nsew'.indexOf(direction) === -1) throw new Error('Invalid direction');\n\n    const neighbour = {\n        n: [ 'p0r21436x8zb9dcf5h7kjnmqesgutwvy', 'bc01fg45238967deuvhjyznpkmstqrwx' ],\n        s: [ '14365h7k9dcfesgujnmqp0r2twvyx8zb', '238967debc01fg45kmstqrwxuvhjyznp' ],\n        e: [ 'bc01fg45238967deuvhjyznpkmstqrwx', 'p0r21436x8zb9dcf5h7kjnmqesgutwvy' ],\n        w: [ '238967debc01fg45kmstqrwxuvhjyznp', '14365h7k9dcfesgujnmqp0r2twvyx8zb' ],\n    };\n\n    const border = {\n        n: [ 'prxz',     'bcfguvyz' ],\n        s: [ '028b',     '0145hjnp' ],\n        e: [ 'bcfguvyz', 'prxz'     ],\n        w: [ '0145hjnp', '028b'     ],\n    };\n\n    const lastCh = geohash.slice(-1);\n    let parent = geohash.slice(0, -1);\n    const type = geohash.length % 2;\n\n    if (border[direction][type].indexOf(lastCh) !== -1 && parent !== '') {\n        parent = adjacent(parent, direction);\n    }\n\n    return parent + BASE32.charAt(neighbour[direction][type].indexOf(lastCh));\n}\n\nfunction neighbours(geohash) {\n    return {\n        n: adjacent(geohash, 'n'),\n        ne: adjacent(adjacent(geohash, 'n'), 'e'),\n        e: adjacent(geohash, 'e'),\n        se: adjacent(adjacent(geohash, 's'), 'e'),\n        s: adjacent(geohash, 's'),\n        sw: adjacent(adjacent(geohash, 's'), 'w'),\n        w: adjacent(geohash, 'w'),\n        nw: adjacent(adjacent(geohash, 'n'), 'w'),\n    };\n}\n\n\nreturn $input.all().map((item, i) => {\n    try {\n\n        const hash = item.json.geohash;\n        if (!hash) {\n            throw new Error(\"Missing geohash in input.\");\n        }\n        return { json: decode(hash), pairedItem: { item: i } };\n    } catch (error) {\n        return { json: { error: error.message }, pairedItem: { item: i } };\n    }\n});"
+      },
+      "id": "d3e3114a-bcb1-485f-9ea8-e8932fa67e79",
+      "name": "Geohash Decode",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "geohash",
+              "value": "gcpvj0d7",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "134b1a1a-a475-4cba-b973-61bb205a438d",
+      "name": "Set Bounds Inputs",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst BASE32 = '0123456789bcdefghjkmnpqrstuvwxyz';\n\nfunction encode(lat, lon, precision = 10) {\n    let idx = 0;\n    let bit = 0;\n    let evenBit = true;\n    let geohash = '';\n\n    let latMin = -90, latMax = 90;\n    let lonMin = -180, lonMax = 180;\n\n    while (geohash.length < precision) {\n        if (evenBit) {\n            const lonMid = (lonMin + lonMax) / 2;\n            if (lon >= lonMid) {\n                idx = idx * 2 + 1;\n                lonMin = lonMid;\n            } else {\n                idx = idx * 2;\n                lonMax = lonMid;\n            }\n        } else {\n            const latMid = (latMin + latMax) / 2;\n            if (lat >= latMid) {\n                idx = idx * 2 + 1;\n                latMin = latMid;\n            } else {\n                idx = idx * 2;\n                latMax = latMid;\n            }\n        }\n        evenBit = !evenBit;\n\n        if (++bit === 5) {\n            geohash += BASE32.charAt(idx);\n            bit = 0;\n            idx = 0;\n        }\n    }\n    return geohash;\n}\n\nfunction bounds(geohash) {\n    let evenBit = true;\n    let latMin = -90, latMax = 90;\n    let lonMin = -180, lonMax = 180;\n\n    for (let i = 0; i < geohash.length; i++) {\n        const chr = geohash.charAt(i);\n        const idx = BASE32.indexOf(chr);\n        if (idx === -1) throw new Error('Invalid geohash');\n\n        for (let n = 4; n >= 0; n--) {\n            const bitN = (idx >> n) & 1;\n            if (evenBit) {\n                const lonMid = (lonMin + lonMax) / 2;\n                if (bitN === 1) {\n                    lonMin = lonMid;\n                } else {\n                    lonMax = lonMid;\n                }\n            } else {\n                const latMid = (latMin + latMax) / 2;\n                if (bitN === 1) {\n                    latMin = latMid;\n                } else {\n                    latMax = latMid;\n                }\n            }\n            evenBit = !evenBit;\n        }\n    }\n\n    return {\n        sw: { lat: latMin, lon: lonMin },\n        ne: { lat: latMax, lon: lonMax },\n    };\n}\n\nfunction decode(geohash) {\n    const b = bounds(geohash);\n    const latMin = b.sw.lat, latMax = b.ne.lat;\n    const lonMin = b.sw.lon, lonMax = b.ne.lon;\n\n    return {\n        lat: Number(((latMin + latMax) / 2).toFixed(Math.floor(2 - Math.log(latMax - latMin) / Math.LN10))),\n        lon: Number(((lonMin + lonMax) / 2).toFixed(Math.floor(2 - Math.log(lonMax - lonMin) / Math.LN10))),\n    };\n}\n\nfunction adjacent(geohash, direction) {\n    geohash = geohash.toLowerCase();\n    direction = direction.toLowerCase();\n\n    if (geohash.length === 0) throw new Error('Invalid geohash');\n    if ('nsew'.indexOf(direction) === -1) throw new Error('Invalid direction');\n\n    const neighbour = {\n        n: [ 'p0r21436x8zb9dcf5h7kjnmqesgutwvy', 'bc01fg45238967deuvhjyznpkmstqrwx' ],\n        s: [ '14365h7k9dcfesgujnmqp0r2twvyx8zb', '238967debc01fg45kmstqrwxuvhjyznp' ],\n        e: [ 'bc01fg45238967deuvhjyznpkmstqrwx', 'p0r21436x8zb9dcf5h7kjnmqesgutwvy' ],\n        w: [ '238967debc01fg45kmstqrwxuvhjyznp', '14365h7k9dcfesgujnmqp0r2twvyx8zb' ],\n    };\n\n    const border = {\n        n: [ 'prxz',     'bcfguvyz' ],\n        s: [ '028b',     '0145hjnp' ],\n        e: [ 'bcfguvyz', 'prxz'     ],\n        w: [ '0145hjnp', '028b'     ],\n    };\n\n    const lastCh = geohash.slice(-1);\n    let parent = geohash.slice(0, -1);\n    const type = geohash.length % 2;\n\n    if (border[direction][type].indexOf(lastCh) !== -1 && parent !== '') {\n        parent = adjacent(parent, direction);\n    }\n\n    return parent + BASE32.charAt(neighbour[direction][type].indexOf(lastCh));\n}\n\nfunction neighbours(geohash) {\n    return {\n        n: adjacent(geohash, 'n'),\n        ne: adjacent(adjacent(geohash, 'n'), 'e'),\n        e: adjacent(geohash, 'e'),\n        se: adjacent(adjacent(geohash, 's'), 'e'),\n        s: adjacent(geohash, 's'),\n        sw: adjacent(adjacent(geohash, 's'), 'w'),\n        w: adjacent(geohash, 'w'),\n        nw: adjacent(adjacent(geohash, 'n'), 'w'),\n    };\n}\n\n\nreturn $input.all().map((item, i) => {\n    try {\n\n        const hash = item.json.geohash;\n        if (!hash) {\n            throw new Error(\"Missing geohash in input.\");\n        }\n        return { json: bounds(hash), pairedItem: { item: i } };\n    } catch (error) {\n        return { json: { error: error.message }, pairedItem: { item: i } };\n    }\n});"
+      },
+      "id": "c522fd77-1f6a-4789-a848-9d4960952f9e",
+      "name": "Geohash Bounds",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "geohash",
+              "value": "gcpvj0duq5",
+              "type": "string"
+            },
+            {
+              "id": "2",
+              "name": "direction",
+              "value": "n",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1a697d23-f739-4ac0-b24d-2b97b99d181f",
+      "name": "Set Adjacent Inputs",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        608
+      ],
+      "notesInFlow": true,
+      "notes": "direction: n, s, e, w"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst BASE32 = '0123456789bcdefghjkmnpqrstuvwxyz';\n\nfunction encode(lat, lon, precision = 10) {\n    let idx = 0;\n    let bit = 0;\n    let evenBit = true;\n    let geohash = '';\n\n    let latMin = -90, latMax = 90;\n    let lonMin = -180, lonMax = 180;\n\n    while (geohash.length < precision) {\n        if (evenBit) {\n            const lonMid = (lonMin + lonMax) / 2;\n            if (lon >= lonMid) {\n                idx = idx * 2 + 1;\n                lonMin = lonMid;\n            } else {\n                idx = idx * 2;\n                lonMax = lonMid;\n            }\n        } else {\n            const latMid = (latMin + latMax) / 2;\n            if (lat >= latMid) {\n                idx = idx * 2 + 1;\n                latMin = latMid;\n            } else {\n                idx = idx * 2;\n                latMax = latMid;\n            }\n        }\n        evenBit = !evenBit;\n\n        if (++bit === 5) {\n            geohash += BASE32.charAt(idx);\n            bit = 0;\n            idx = 0;\n        }\n    }\n    return geohash;\n}\n\nfunction bounds(geohash) {\n    let evenBit = true;\n    let latMin = -90, latMax = 90;\n    let lonMin = -180, lonMax = 180;\n\n    for (let i = 0; i < geohash.length; i++) {\n        const chr = geohash.charAt(i);\n        const idx = BASE32.indexOf(chr);\n        if (idx === -1) throw new Error('Invalid geohash');\n\n        for (let n = 4; n >= 0; n--) {\n            const bitN = (idx >> n) & 1;\n            if (evenBit) {\n                const lonMid = (lonMin + lonMax) / 2;\n                if (bitN === 1) {\n                    lonMin = lonMid;\n                } else {\n                    lonMax = lonMid;\n                }\n            } else {\n                const latMid = (latMin + latMax) / 2;\n                if (bitN === 1) {\n                    latMin = latMid;\n                } else {\n                    latMax = latMid;\n                }\n            }\n            evenBit = !evenBit;\n        }\n    }\n\n    return {\n        sw: { lat: latMin, lon: lonMin },\n        ne: { lat: latMax, lon: lonMax },\n    };\n}\n\nfunction decode(geohash) {\n    const b = bounds(geohash);\n    const latMin = b.sw.lat, latMax = b.ne.lat;\n    const lonMin = b.sw.lon, lonMax = b.ne.lon;\n\n    return {\n        lat: Number(((latMin + latMax) / 2).toFixed(Math.floor(2 - Math.log(latMax - latMin) / Math.LN10))),\n        lon: Number(((lonMin + lonMax) / 2).toFixed(Math.floor(2 - Math.log(lonMax - lonMin) / Math.LN10))),\n    };\n}\n\nfunction adjacent(geohash, direction) {\n    geohash = geohash.toLowerCase();\n    direction = direction.toLowerCase();\n\n    if (geohash.length === 0) throw new Error('Invalid geohash');\n    if ('nsew'.indexOf(direction) === -1) throw new Error('Invalid direction');\n\n    const neighbour = {\n        n: [ 'p0r21436x8zb9dcf5h7kjnmqesgutwvy', 'bc01fg45238967deuvhjyznpkmstqrwx' ],\n        s: [ '14365h7k9dcfesgujnmqp0r2twvyx8zb', '238967debc01fg45kmstqrwxuvhjyznp' ],\n        e: [ 'bc01fg45238967deuvhjyznpkmstqrwx', 'p0r21436x8zb9dcf5h7kjnmqesgutwvy' ],\n        w: [ '238967debc01fg45kmstqrwxuvhjyznp', '14365h7k9dcfesgujnmqp0r2twvyx8zb' ],\n    };\n\n    const border = {\n        n: [ 'prxz',     'bcfguvyz' ],\n        s: [ '028b',     '0145hjnp' ],\n        e: [ 'bcfguvyz', 'prxz'     ],\n        w: [ '0145hjnp', '028b'     ],\n    };\n\n    const lastCh = geohash.slice(-1);\n    let parent = geohash.slice(0, -1);\n    const type = geohash.length % 2;\n\n    if (border[direction][type].indexOf(lastCh) !== -1 && parent !== '') {\n        parent = adjacent(parent, direction);\n    }\n\n    return parent + BASE32.charAt(neighbour[direction][type].indexOf(lastCh));\n}\n\nfunction neighbours(geohash) {\n    return {\n        n: adjacent(geohash, 'n'),\n        ne: adjacent(adjacent(geohash, 'n'), 'e'),\n        e: adjacent(geohash, 'e'),\n        se: adjacent(adjacent(geohash, 's'), 'e'),\n        s: adjacent(geohash, 's'),\n        sw: adjacent(adjacent(geohash, 's'), 'w'),\n        w: adjacent(geohash, 'w'),\n        nw: adjacent(adjacent(geohash, 'n'), 'w'),\n    };\n}\n\n\nreturn $input.all().map((item, i) => {\n    try {\n\n        const hash = item.json.geohash;\n        const direction = item.json.direction;\n        if (!hash || !direction) {\n            throw new Error(\"Missing geohash or direction (n,s,e,w) in input.\");\n        }\n        return { json: { geohash: adjacent(hash, direction) }, pairedItem: { item: i } };\n    } catch (error) {\n        return { json: { error: error.message }, pairedItem: { item: i } };\n    }\n});"
+      },
+      "id": "5d3a5b88-a7fe-40bd-b54f-95855376db2f",
+      "name": "Geohash Adjacent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        608
+      ],
+      "notesInFlow": false
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "geohash",
+              "value": "gcpvj0d7",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c5f9f789-2051-4b54-ab90-fa201ff43c0f",
+      "name": "Set Neighbours Inputs",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst BASE32 = '0123456789bcdefghjkmnpqrstuvwxyz';\n\nfunction encode(lat, lon, precision = 10) {\n    let idx = 0;\n    let bit = 0;\n    let evenBit = true;\n    let geohash = '';\n\n    let latMin = -90, latMax = 90;\n    let lonMin = -180, lonMax = 180;\n\n    while (geohash.length < precision) {\n        if (evenBit) {\n            const lonMid = (lonMin + lonMax) / 2;\n            if (lon >= lonMid) {\n                idx = idx * 2 + 1;\n                lonMin = lonMid;\n            } else {\n                idx = idx * 2;\n                lonMax = lonMid;\n            }\n        } else {\n            const latMid = (latMin + latMax) / 2;\n            if (lat >= latMid) {\n                idx = idx * 2 + 1;\n                latMin = latMid;\n            } else {\n                idx = idx * 2;\n                latMax = latMid;\n            }\n        }\n        evenBit = !evenBit;\n\n        if (++bit === 5) {\n            geohash += BASE32.charAt(idx);\n            bit = 0;\n            idx = 0;\n        }\n    }\n    return geohash;\n}\n\nfunction bounds(geohash) {\n    let evenBit = true;\n    let latMin = -90, latMax = 90;\n    let lonMin = -180, lonMax = 180;\n\n    for (let i = 0; i < geohash.length; i++) {\n        const chr = geohash.charAt(i);\n        const idx = BASE32.indexOf(chr);\n        if (idx === -1) throw new Error('Invalid geohash');\n\n        for (let n = 4; n >= 0; n--) {\n            const bitN = (idx >> n) & 1;\n            if (evenBit) {\n                const lonMid = (lonMin + lonMax) / 2;\n                if (bitN === 1) {\n                    lonMin = lonMid;\n                } else {\n                    lonMax = lonMid;\n                }\n            } else {\n                const latMid = (latMin + latMax) / 2;\n                if (bitN === 1) {\n                    latMin = latMid;\n                } else {\n                    latMax = latMid;\n                }\n            }\n            evenBit = !evenBit;\n        }\n    }\n\n    return {\n        sw: { lat: latMin, lon: lonMin },\n        ne: { lat: latMax, lon: lonMax },\n    };\n}\n\nfunction decode(geohash) {\n    const b = bounds(geohash);\n    const latMin = b.sw.lat, latMax = b.ne.lat;\n    const lonMin = b.sw.lon, lonMax = b.ne.lon;\n\n    return {\n        lat: Number(((latMin + latMax) / 2).toFixed(Math.floor(2 - Math.log(latMax - latMin) / Math.LN10))),\n        lon: Number(((lonMin + lonMax) / 2).toFixed(Math.floor(2 - Math.log(lonMax - lonMin) / Math.LN10))),\n    };\n}\n\nfunction adjacent(geohash, direction) {\n    geohash = geohash.toLowerCase();\n    direction = direction.toLowerCase();\n\n    if (geohash.length === 0) throw new Error('Invalid geohash');\n    if ('nsew'.indexOf(direction) === -1) throw new Error('Invalid direction');\n\n    const neighbour = {\n        n: [ 'p0r21436x8zb9dcf5h7kjnmqesgutwvy', 'bc01fg45238967deuvhjyznpkmstqrwx' ],\n        s: [ '14365h7k9dcfesgujnmqp0r2twvyx8zb', '238967debc01fg45kmstqrwxuvhjyznp' ],\n        e: [ 'bc01fg45238967deuvhjyznpkmstqrwx', 'p0r21436x8zb9dcf5h7kjnmqesgutwvy' ],\n        w: [ '238967debc01fg45kmstqrwxuvhjyznp', '14365h7k9dcfesgujnmqp0r2twvyx8zb' ],\n    };\n\n    const border = {\n        n: [ 'prxz',     'bcfguvyz' ],\n        s: [ '028b',     '0145hjnp' ],\n        e: [ 'bcfguvyz', 'prxz'     ],\n        w: [ '0145hjnp', '028b'     ],\n    };\n\n    const lastCh = geohash.slice(-1);\n    let parent = geohash.slice(0, -1);\n    const type = geohash.length % 2;\n\n    if (border[direction][type].indexOf(lastCh) !== -1 && parent !== '') {\n        parent = adjacent(parent, direction);\n    }\n\n    return parent + BASE32.charAt(neighbour[direction][type].indexOf(lastCh));\n}\n\nfunction neighbours(geohash) {\n    return {\n        n: adjacent(geohash, 'n'),\n        ne: adjacent(adjacent(geohash, 'n'), 'e'),\n        e: adjacent(geohash, 'e'),\n        se: adjacent(adjacent(geohash, 's'), 'e'),\n        s: adjacent(geohash, 's'),\n        sw: adjacent(adjacent(geohash, 's'), 'w'),\n        w: adjacent(geohash, 'w'),\n        nw: adjacent(adjacent(geohash, 'n'), 'w'),\n    };\n}\n\n\nreturn $input.all().map((item, i) => {\n    try {\n\n        const hash = item.json.geohash;\n        if (!hash) {\n            throw new Error(\"Missing geohash in input.\");\n        }\n        return { json: neighbours(hash), pairedItem: { item: i } };\n    } catch (error) {\n        return { json: { error: error.message }, pairedItem: { item: i } };\n    }\n});"
+      },
+      "id": "9b563a83-e376-4fce-8549-84f3f72ad32a",
+      "name": "Geohash Neighbours",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "bounds",
+        "geohash": "gcpvj0d7"
+      },
+      "type": "n8n-nodes-geohash.geohash",
+      "typeVersion": 1,
+      "position": [
+        432,
+        320
+      ],
+      "id": "16459ece-63b0-48ac-b1a3-660c2aae39c2",
+      "name": "Geohash"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -336,
+        400
+      ],
+      "id": "1b5606bb-b97c-42c7-bddf-cd0fc82d4fce",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "operation": "adjacent",
+        "geohash": "gcpvj0duq5"
+      },
+      "type": "n8n-nodes-geohash.geohash",
+      "typeVersion": 1,
+      "position": [
+        432,
+        512
+      ],
+      "id": "cd673e46-daa3-49f5-802b-f90dac84b3d2",
+      "name": "Geohash1"
+    },
+    {
+      "parameters": {
+        "operation": "neighbours",
+        "geohash": "gcpvj0duq5"
+      },
+      "type": "n8n-nodes-geohash.geohash",
+      "typeVersion": 1,
+      "position": [
+        432,
+        720
+      ],
+      "id": "e592749b-38c9-4f9c-876c-6f18e5fc433c",
+      "name": "Geohash2"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Set Encode Inputs": {
+      "main": [
+        [
+          {
+            "node": "Geohash Encode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Decode Inputs": {
+      "main": [
+        [
+          {
+            "node": "Geohash Decode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Bounds Inputs": {
+      "main": [
+        [
+          {
+            "node": "Geohash Bounds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Adjacent Inputs": {
+      "main": [
+        [
+          {
+            "node": "Geohash Adjacent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Neighbours Inputs": {
+      "main": [
+        [
+          {
+            "node": "Geohash Neighbours",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Set Encode Inputs",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Set Decode Inputs",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Set Bounds Inputs",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Set Adjacent Inputs",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Set Neighbours Inputs",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Geohash1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Geohash",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Geohash2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Geohash Adjacent": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "f34504fc-c2cb-48fb-90d7-9dd2b9ab1014",
+  "meta": {
+    "instanceId": "c0a41023b0b733e09a9e6006654dd58c0d2741e7f7290a975c091c98da229c2c"
+  },
+  "id": "Jdl9M3SJdeemUmko",
+  "tags": [
+    {
+      "updatedAt": "2026-01-08T20:57:37.998Z",
+      "createdAt": "2026-01-08T20:57:37.998Z",
+      "id": "aPQ2YpOVwGG3eFkg",
+      "name": "function"
+    },
+    {
+      "updatedAt": "2025-12-23T14:44:00.783Z",
+      "createdAt": "2025-12-23T14:44:00.783Z",
+      "id": "i38a0l7P29Vcgpxv",
+      "name": "PRX"
+    }
+  ]
+}
